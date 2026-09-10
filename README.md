@@ -5,11 +5,11 @@
 A fully functional, live production website for Ülmez İnşaat, a construction-materials
 retailer in Diyarbakır, Turkey (est. 1980). Built with Next.js (App Router): a
 public-facing storefront (product catalog, quote cart, reference projects, dealer
-network, real-estate listings) plus a full custom admin panel for managing all of it —
+network, real-estate listings) plus a full custom admin panel for managing all of it
 no external CMS, no database, just the file system as a lightweight content store.
 
 > Note: the `data/` folder (products, projects, etc.) holds live business data and
-> isn't included in this repo. To run it yourself, seed it with sample data instead —
+> isn't included in this repo. To run it yourself, seed it with sample data instead
 > see below.
 
 ## Features
@@ -24,14 +24,14 @@ no external CMS, no database, just the file system as a lightweight content stor
   panel, with one markable as the "main" photo; displayed as a gallery with a
   full-screen lightbox viewer (keyboard/click navigation) on the public pages
 - **Direct file upload**: admin can upload photos straight from their device
-  ("📤 Upload" button) — no need to host images elsewhere and paste a URL
+  ("📤 Upload" button) no need to host images elsewhere and paste a URL
 - **Admin panel** (`/admin`): full CRUD for products, projects, real-estate listings,
   and catalogs; view incoming quote requests; site-wide settings (phone numbers,
   About/Contact copy, address) editable per language
 - **Security**: salted+hashed admin password (changeable from the panel itself, no
   redeploy needed), HMAC-signed session cookies, brute-force lockout on login
   (5 attempts → 15-minute cooldown, per IP)
-- Ships with 19 sample products — real ones can be added from the admin panel;
+- Ships with 19 sample products real ones can be added from the admin panel;
   products without a photo yet fall back to a simple color-swatch placeholder card
 
 ## Architecture note
