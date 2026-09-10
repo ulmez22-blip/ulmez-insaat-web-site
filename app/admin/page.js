@@ -19,10 +19,13 @@ export default function AdminLogin() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(res.status === 429 ? data.error : 'Şifre hatalı.');
+      }
       router.push('/admin/dashboard');
-    } catch {
-      setError('Şifre hatalı.');
+    } catch (err) {
+      setError(err.message || 'Şifre hatalı.');
     } finally {
       setLoading(false);
     }
