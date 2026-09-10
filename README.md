@@ -16,9 +16,9 @@ no external CMS, no database, just the file system as a lightweight content stor
 
 - **Pages**: Home, Products, Reference Projects, Dealerships + E-Catalog, Real Estate
   (for sale/rent), About, Contact, Quote Cart
-- **3 languages**: Turkish (default), English, Kurdish — switchable from the header
+- **3 languages**: Turkish (default), English, Kurdish switchable from the header
 - **Quote cart**: customers pick products, enter quantities, and submit a quote
-  request with contact info (no online payment — this is a B2B/wholesale-style
+  request with contact info (no online payment this is a B2B/wholesale-style
   request flow, not e-commerce checkout)
 - **Product & project photo galleries**: unlimited photos per item from the admin
   panel, with one markable as the "main" photo; displayed as a gallery with a
@@ -37,7 +37,7 @@ no external CMS, no database, just the file system as a lightweight content stor
 ## Architecture note
 
 All content lives in flat JSON files (`data/*.json`), read/written directly on the
-server's disk — intentionally no database. Pages that depend on this data are marked
+server's disk intentionally no database. Pages that depend on this data are marked
 `export const dynamic = 'force-dynamic'`, so every request reads the current file
 state; this was a deliberate fix during development after discovering Next.js would
 otherwise statically prerender these pages at build time, which would have meant
@@ -60,7 +60,7 @@ To populate it with sample data: `npm run seed`
 ## Admin panel
 
 - URL: `/admin` (e.g. `http://localhost:3000/admin`)
-- Default password: whatever you set in `.env.local` — **change it before going
+- Default password: whatever you set in `.env.local` **change it before going
   live.** Once logged in, this can also be changed directly from **Settings →
   Change Admin Password**, no file editing or redeploy required.
 
