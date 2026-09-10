@@ -1,131 +1,125 @@
-# Ülmez İnşaat — Web Sitesi
+# Ülmez İnşaat — Website
 
-🔗 **Canlı site:** [ulmezinsaat.com](https://ulmezinsaat.com)
+🔗 **Live site:** [ulmezinsaat.com](https://ulmezinsaat.com)
 
-Bu proje, Ülmez İnşaat için hazırlanmış tam fonksiyonel, canlıda çalışan bir web
-sitesidir: front-end (ürün kataloğu, teklif sepeti) ve back-end (ürün/teklif
-yönetimi, admin panel) bir arada, Next.js ile geliştirilmiştir.
+A fully functional, live production website for Ülmez İnşaat, a construction-materials
+retailer in Diyarbakır, Turkey (est. 1980). Built with Next.js (App Router): a
+public-facing storefront (product catalog, quote cart, reference projects, dealer
+network, real-estate listings) plus a full custom admin panel for managing all of it —
+no external CMS, no database, just the file system as a lightweight content store.
 
-> Not: `data/` klasöründeki içerik (ürünler, projeler vb.) canlı işletme verisi
-> olduğu için bu repoda yer almaz. Depoyu klonlayıp çalıştırmak isterseniz
-> `npm run seed` ile örnek verilerle doldurabilirsiniz — aşağıya bakın.
+> Note: the `data/` folder (products, projects, etc.) holds live business data and
+> isn't included in this repo. To run it yourself, seed it with sample data instead —
+> see below.
 
-## Neler var?
+## Features
 
-- **Anasayfa, Ürünlerimiz, Referans Projelerimiz, Bayiliklerimiz + E-Katalog, Emlak
-  (satılık/kiralık), Hakkımızda, İletişim, Teklif Sepeti** sayfaları
-- **3 dil**: Türkçe (varsayılan), İngilizce, Kurdî — sağ üstten değiştirilebilir
-- **Teklif sepeti**: Müşteri ürün seçer, miktar girer, iletişim bilgileriyle teklif talebi gönderir (online ödeme yok)
-- **Ürün ve proje fotoğrafları**: Her ürüne/projeye admin panelden istediğiniz kadar fotoğraf
-  eklenebilir, birini "Ana Fotoğraf" yapabilirsiniz; ürün/proje sayfasında büyük galeri +
-  tıklayınca açılan tam ekran görüntüleyici (ok tuşlarıyla gezinme) olarak gösterilir
-- **Fotoğraf yükleme**: Admin panelden bilgisayarınızdan doğrudan fotoğraf yükleyebilirsiniz
-  ("📤 Yükle" düğmesi) — ayrıca bir yere yükleyip link almanıza gerek yok
-- **Admin panel** (`/admin`): Ürünler, Projelerimiz, Emlak İlanları, Kataloglar sekmelerinde
-  ekleme/düzenleme/silme; gelen teklif taleplerini görüntüleme; site telefon numarası gibi
-  ayarlar
-- 19 örnek ürün ile dolu geliyor — gerçek ürünlerinizi admin panelden ekleyebilir, fotoğrafsız
-  ürünler otomatik olarak rengini gösteren basit bir "örnek kart" ile gösterilir
+- **Pages**: Home, Products, Reference Projects, Dealerships + E-Catalog, Real Estate
+  (for sale/rent), About, Contact, Quote Cart
+- **3 languages**: Turkish (default), English, Kurdish — switchable from the header
+- **Quote cart**: customers pick products, enter quantities, and submit a quote
+  request with contact info (no online payment — this is a B2B/wholesale-style
+  request flow, not e-commerce checkout)
+- **Product & project photo galleries**: unlimited photos per item from the admin
+  panel, with one markable as the "main" photo; displayed as a gallery with a
+  full-screen lightbox viewer (keyboard/click navigation) on the public pages
+- **Direct file upload**: admin can upload photos straight from their device
+  ("📤 Upload" button) — no need to host images elsewhere and paste a URL
+- **Admin panel** (`/admin`): full CRUD for products, projects, real-estate listings,
+  and catalogs; view incoming quote requests; site-wide settings (phone numbers,
+  About/Contact copy, address) editable per language
+- **Security**: salted+hashed admin password (changeable from the panel itself, no
+  redeploy needed), HMAC-signed session cookies, brute-force lockout on login
+  (5 attempts → 15-minute cooldown, per IP)
+- Ships with 19 sample products — real ones can be added from the admin panel;
+  products without a photo yet fall back to a simple color-swatch placeholder card
 
-## Yerel bilgisayarda çalıştırma
+## Architecture note
 
-Gereksinim: [Node.js](https://nodejs.org) 18 veya üzeri.
+All content lives in flat JSON files (`data/*.json`), read/written directly on the
+server's disk — intentionally no database. Pages that depend on this data are marked
+`export const dynamic = 'force-dynamic'`, so every request reads the current file
+state; this was a deliberate fix during development after discovering Next.js would
+otherwise statically prerender these pages at build time, which would have meant
+admin edits never showing up on the live site without a full rebuild.
+
+## Running locally
+
+Requires [Node.js](https://nodejs.org) 18+.
 
 ```bash
 npm install
-cp .env.local.example .env.local   # şifreyi değiştirin
+cp .env.local.example .env.local   # set your own admin password
 npm run dev
 ```
 
-Tarayıcıda `http://localhost:3000` adresini açın.
+Open `http://localhost:3000` in your browser.
 
-Örnek verileri sıfırlamak isterseniz: `npm run seed`
+To populate it with sample data: `npm run seed`
 
-## Admin paneline giriş
+## Admin panel
 
-- Adres: `/admin` (örn. `http://localhost:3000/admin`)
-- Varsayılan şifre: `ulmez1980` — **canlıya almadan önce mutlaka değiştirin.**
-  Admin panelinde giriş yaptıktan sonra **Ayarlar** sekmesinin altında
-  "Admin Şifresini Değiştir" bölümünden değiştirebilirsiniz — dosya
-  düzenlemeye gerek yoktur, değişiklik hemen geçerli olur.
+- URL: `/admin` (e.g. `http://localhost:3000/admin`)
+- Default password: whatever you set in `.env.local` — **change it before going
+  live.** Once logged in, this can also be changed directly from **Settings →
+  Change Admin Password**, no file editing or redeploy required.
 
-## Domain satın alma ve siteyi yayına alma
+## Deployment
 
-Domain satın almak ve siteyi barındırmak (hosting) benim yapabileceğim bir işlem değil —
-bunlar sizin adınıza bir ödeme/hesap gerektirir. Ama adım adım şöyle ilerleyebilirsiniz:
+This site is deployed on a small Ubuntu VPS (not a serverless platform like Vercel),
+which was a deliberate choice: since content and uploaded photos are stored as files
+on disk rather than in a database or cloud storage bucket, the app needs a server
+with a **persistent filesystem** to keep that data across restarts and deploys.
+Serverless platforms reset their filesystem on every deploy, which would silently
+wipe uploaded photos and any admin-added content.
 
-### 1. Domain satın alma
-Türkiye'de yaygın seçenekler: **isimtescil.com, natro.com, turhost.com** ya da
-uluslararası **Namecheap, GoDaddy**. Örnek: `ulmezinsaat.com.tr` veya `ulmezinsaat.com`.
-".com.tr" için genelde vergi levhası istenir (kurumsal .tr uzantıları için).
+**Stack in production:**
 
-### 2. Siteyi yayına alma (hosting)
+1. Ubuntu server, Node.js 20
+2. App built with `npm run build` and run continuously via **PM2** (auto-restarts on
+   crash or server reboot)
+3. **Nginx** as a reverse proxy from ports 80/443 to the Node app on port 3000
+4. **Certbot** (Let's Encrypt) for free, auto-renewing SSL
+5. `ufw` firewall (SSH, HTTP, HTTPS only) and SSH key-only authentication
+   (password login disabled)
 
-Bu site ürün/teklif/proje verilerini ve admin panelinden yüklenen fotoğrafları basit
-dosyalarda tutuyor (`data/` klasöründe JSON, `public/uploads/` klasöründe resimler).
-Bu yüzden **kalıcı bir disk'i olan bir sunucu** (VPS) seçmeniz öneriliyor — böylece
-hem veriler hem yüklenen fotoğraflar sorunsuz kalıcı olur, ayrı bir veritabanına
-geçmenize gerek kalmaz.
+**Basic setup steps, for reference:**
 
-**Yaygın VPS seçenekleri:** Hetzner, Contabo, DigitalOcean (uluslararası, uygun
-fiyatlı) veya Natro, Turhost gibi Türkiye merkezli sağlayıcılar. Aylık ~5-10€
-seviyesindeki en küçük paket bu site için fazlasıyla yeterlidir.
+```bash
+# Node.js 20
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
 
-**Kurulum adımları (Ubuntu sunucu için):**
+# app
+npm install
+cp .env.local.example .env.local   # set ADMIN_PASSWORD and ADMIN_SESSION_SECRET
+npm run build
 
-1. VPS'i satın alıp SSH ile bağlanın: `ssh root@sunucu-ip-adresi`
-2. Node.js kurun (18 veya üzeri):
-   ```bash
-   curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-   sudo apt-get install -y nodejs
-   ```
-3. Projeyi sunucuya aktarın (GitHub'a yükleyip `git clone` ile, veya `scp`/SFTP ile
-   doğrudan kopyalayarak).
-4. Bağımlılıkları kurup projeyi derleyin:
-   ```bash
-   npm install
-   cp .env.local.example .env.local   # ADMIN_PASSWORD ve ADMIN_SESSION_SECRET'ı değiştirin
-   npm run build
-   ```
-5. Siteyi sürekli çalışır tutmak için bir process manager kullanın (sunucu yeniden
-   başlasa veya site çökse bile otomatik ayağa kalkar):
-   ```bash
-   sudo npm install -g pm2
-   pm2 start npm --name ulmez-insaat -- start
-   pm2 save
-   pm2 startup   # sunucu yeniden başladığında otomatik başlatma için verilen komutu çalıştırın
-   ```
-6. **Nginx** kurup siteyi 80/443 portlarından (standart web portları) 3000 portundaki
-   uygulamaya yönlendirin (reverse proxy), ardından **Certbot** ile ücretsiz SSL
-   sertifikası alın — bu adımlar için yardımcı olabilirim, sunucunuz hazır olduğunda
-   söylemeniz yeterli.
-7. Domain sağlayıcınızda, domaininizin **A kaydını** VPS'in IP adresine yönlendirin.
-   DNS'in yayılması birkaç saat sürebilir.
+# process manager
+sudo npm install -g pm2
+pm2 start npm --name ulmez-insaat -- start
+pm2 save
+pm2 startup
 
-**Alternatif — Vercel:** Ücretsiz ve daha az teknik bilgi gerektiren bir seçenek
-Vercel'dir, ancak dosya sistemi her deploy'da sıfırlandığı için hem JSON veri
-dosyaları hem admin panelinden yüklenen fotoğraflar kalıcı olmaz — Vercel'de bu
-site için ayrıca bir veritabanı (örn. Vercel Postgres) ve bulut depolama (örn.
-Vercel Blob veya S3) kurulumu gerekir. VPS yolunda bu ek kurulumlara gerek yoktur.
+# nginx + certbot handle the reverse proxy and SSL from there
+```
 
-### 3. Yedekleme
+### Backups
 
-VPS'te veriler kalıcı olsa da, tek bir sunucuda tutulduğu için düzenli yedek almanız
-önerilir. En basit yöntem: `data/` ve `public/uploads/` klasörlerini düzenli aralıklarla
-(örn. haftalık) bilgisayarınıza indirmek veya bir bulut depoya (Google Drive, Dropbox vb.)
-otomatik kopyalayan basit bir zamanlanmış görev (cron) kurmak — isterseniz bunu da
-kurabilirim.
+Even with persistent storage, a single VPS is still a single point of failure, so
+`data/` and `public/uploads/` should be backed up regularly (e.g. a weekly cron job
+copying them somewhere else).
 
-## Klasör yapısı (özet)
+## Folder structure (summary)
 
 ```
-app/[locale]/         → dile göre sayfalar (tr/en/ku)
-app/api/               → backend uçları (ürünler, projeler, bayilikler, kataloglar,
-                          emlak ilanları, ayarlar, fotoğraf yükleme, admin girişi)
-app/admin/             → admin panel sayfaları
-components/            → arayüz bileşenleri
-data/                  → ürün, kategori, proje, bayilik, katalog, emlak ilanı,
-                          teklif, ayar verileri (JSON)
-lib/                   → veri erişimi, çeviri metinleri, admin doğrulama
-public/uploads/        → admin panelden yüklenen fotoğraflar
+app/[locale]/         → localized pages (tr/en/ku)
+app/api/               → backend routes (products, projects, dealers, catalogs,
+                          listings, settings, file upload, admin auth)
+app/admin/             → admin panel pages
+components/            → UI components
+data/                  → product/category/project/dealer/catalog/listing/quote/
+                          settings data (JSON, gitignored — see note above)
+lib/                   → data access, i18n strings, admin auth
+public/uploads/        → photos uploaded from the admin panel (gitignored)
 ```
