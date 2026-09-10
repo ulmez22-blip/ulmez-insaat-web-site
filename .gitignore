@@ -1,0 +1,11 @@
+node_modules
+.next
+.env.local
+
+# Live business data — real content and customer info from the running site,
+# not source code. Lives independently on the server; never goes to a public repo.
+data/*.json
+public/uploads/
+
+# Local scratch/test files used during development, never meant to be committed
+scratch-*.js
