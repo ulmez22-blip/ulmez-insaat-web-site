@@ -78,7 +78,13 @@ wipe uploaded photos and any admin-added content.
 1. Ubuntu server, Node.js 20
 2. App built with `npm run build` and run continuously via **PM2** (auto-restarts on
    crash or server reboot)
-3. **Nginx** as a reverse proxy from ports 80/443 to the Node app on port 3000
+3. **Nginx** as a reverse proxy from ports 80/443 to the Node app on port 3000 —
+   with one important exception: **`/uploads/` is served directly by Nginx from
+   disk (`alias`), not proxied to Node.** This was a deliberate fix after
+   discovering that `next start` only picks up the files that existed in
+   `public/uploads/` at process boot — a photo uploaded while the app is
+   already running 404s until the next restart, unless something in front of
+   it (Nginx) serves that folder as plain static files instead.
 4. **Certbot** (Let's Encrypt) for free, auto-renewing SSL
 5. `ufw` firewall (SSH, HTTP, HTTPS only) and SSH key-only authentication
    (password login disabled)
