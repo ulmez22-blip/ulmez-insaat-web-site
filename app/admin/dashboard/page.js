@@ -4,15 +4,13 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageListEditor from '../../../components/admin/ImageListEditor';
 
-const CATEGORY_OPTIONS = [
-  'seramik-fayans', 'vitrifiye', 'parke-zemin', 'yalitim', 'yapi-kimyasallari', 'hirdavat',
-];
-
 const EMPTY_FORM = {
-  sku: '', category: CATEGORY_OPTIONS[0], unit: 'm²', spec: '', color: '#C9BBA0',
+  sku: '', category: '', unit: 'm²', spec: '', color: '#C9BBA0',
   name_tr: '', name_en: '', name_ku: '', desc_tr: '', desc_en: '', desc_ku: '', featured: false,
   images: [],
 };
+
+const EMPTY_CATEGORY_FORM = { name_tr: '', name_en: '', name_ku: '', desc_tr: '', desc_en: '', desc_ku: '' };
 
 const EMPTY_PROJECT_FORM = {
   name_tr: '', name_en: '', name_ku: '', location: '',
@@ -38,7 +36,9 @@ const EMPTY_SETTINGS = {
 };
 
 const TABS = [
+  { key: 'ozet', label: 'Özet' },
   { key: 'products', label: 'Ürünler' },
+  { key: 'categories', label: 'Kategoriler' },
   { key: 'projects', label: 'Projelerimiz' },
   { key: 'listings', label: 'Emlak İlanları' },
   { key: 'catalogs', label: 'Kataloglar' },
@@ -49,20 +49,27 @@ const TABS = [
 export default function AdminDashboard() {
   const router = useRouter();
   const [authChecked, setAuthChecked] = useState(false);
-  const [tab, setTab] = useState('products');
+  const [tab, setTab] = useState('ozet');
 
   const [products, setProducts] = useState([]);
   const [quotes, setQuotes] = useState([]);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState(null);
+  const [productSearch, setProductSearch] = useState('');
+
+  const [categories, setCategories] = useState([]);
+  const [categoryForm, setCategoryForm] = useState(EMPTY_CATEGORY_FORM);
+  const [editingCategorySlug, setEditingCategorySlug] = useState(null);
 
   const [projects, setProjects] = useState([]);
   const [projectForm, setProjectForm] = useState(EMPTY_PROJECT_FORM);
   const [editingProjectId, setEditingProjectId] = useState(null);
+  const [projectSearch, setProjectSearch] = useState('');
 
   const [listings, setListings] = useState([]);
   const [listingForm, setListingForm] = useState(EMPTY_LISTING_FORM);
   const [editingListingId, setEditingListingId] = useState(null);
+  const [listingSearch, setListingSearch] = useState('');
 
   const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [settingsSaved, setSettingsSaved] = useState(false);
@@ -97,7 +104,27 @@ export default function AdminDashboard() {
       setCatalogForm((f) => (f.dealerName ? f : { ...f, dealerName: d[0]?.name || '' }));
     });
     fetch('/api/catalogs').then((r) => r.json()).then(setCatalogs);
+    fetch('/api/categories').then((r) => r.json()).then((c) => {
+      setCategories(c);
+      setForm((f) => (f.category ? f : { ...f, category: c[0]?.slug || '' }));
+    });
   }, [authChecked]);
+
+  const filteredProducts = products.filter((p) => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return true;
+    return p.sku.toLowerCase().includes(q) || p.name.tr.toLowerCase().includes(q);
+  });
+  const filteredProjects = projects.filter((p) => {
+    const q = projectSearch.trim().toLowerCase();
+    if (!q) return true;
+    return p.name.tr.toLowerCase().includes(q) || p.location.toLowerCase().includes(q);
+  });
+  const filteredListings = listings.filter((l) => {
+    const q = listingSearch.trim().toLowerCase();
+    if (!q) return true;
+    return l.title.tr.toLowerCase().includes(q) || l.location.toLowerCase().includes(q);
+  });
 
   async function handleLogout() {
     await fetch('/api/admin/logout', { method: 'POST' });
@@ -106,7 +133,7 @@ export default function AdminDashboard() {
 
   // ---- Products ----
   function resetForm() {
-    setForm(EMPTY_FORM);
+    setForm({ ...EMPTY_FORM, category: categories[0]?.slug || '' });
     setEditingId(null);
   }
 
@@ -158,6 +185,53 @@ export default function AdminDashboard() {
       method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }),
     });
     if (res.ok) setQuotes((prev) => prev.map((q) => (q.id === id ? { ...q, status } : q)));
+  }
+
+  // ---- Categories (Kategoriler) ----
+  function resetCategoryForm() {
+    setCategoryForm(EMPTY_CATEGORY_FORM);
+    setEditingCategorySlug(null);
+  }
+
+  function loadCategoryForEdit(c) {
+    setEditingCategorySlug(c.slug);
+    setCategoryForm({
+      name_tr: c.name.tr, name_en: c.name.en, name_ku: c.name.ku,
+      desc_tr: c.desc.tr, desc_en: c.desc.en, desc_ku: c.desc.ku,
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  async function handleCategorySubmit(e) {
+    e.preventDefault();
+    const payload = {
+      name: { tr: categoryForm.name_tr, en: categoryForm.name_en || categoryForm.name_tr, ku: categoryForm.name_ku || categoryForm.name_tr },
+      desc: { tr: categoryForm.desc_tr, en: categoryForm.desc_en || categoryForm.desc_tr, ku: categoryForm.desc_ku || categoryForm.desc_tr },
+    };
+
+    const res = editingCategorySlug
+      ? await fetch(`/api/categories/${editingCategorySlug}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        })
+      : await fetch('/api/categories', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+        });
+
+    if (res.ok) {
+      const updated = await fetch('/api/categories').then((r) => r.json());
+      setCategories(updated);
+      resetCategoryForm();
+    }
+  }
+
+  async function handleCategoryDelete(slug) {
+    const inUse = products.filter((p) => p.category === slug).length;
+    const msg = inUse
+      ? `Bu kategoride ${inUse} ürün var. Silerseniz bu ürünler kategorisiz kalır. Yine de silmek istiyor musunuz?`
+      : 'Bu kategoriyi silmek istediğinize emin misiniz?';
+    if (!confirm(msg)) return;
+    const res = await fetch(`/api/categories/${slug}`, { method: 'DELETE' });
+    if (res.ok) setCategories((prev) => prev.filter((c) => c.slug !== slug));
   }
 
   // ---- Projects (Projelerimiz) ----
@@ -344,6 +418,7 @@ export default function AdminDashboard() {
           >
             {t.label}
             {t.key === 'products' && ` (${products.length})`}
+            {t.key === 'categories' && ` (${categories.length})`}
             {t.key === 'projects' && ` (${projects.length})`}
             {t.key === 'listings' && ` (${listings.length})`}
             {t.key === 'catalogs' && ` (${catalogs.length})`}
@@ -352,6 +427,51 @@ export default function AdminDashboard() {
         ))}
       </div>
 
+      {tab === 'ozet' && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Ürünler', count: products.length, onClick: () => setTab('products') },
+              { label: 'Projeler', count: projects.length, onClick: () => setTab('projects') },
+              { label: 'Emlak İlanları', count: listings.length, onClick: () => setTab('listings') },
+              { label: 'Kataloglar', count: catalogs.length, onClick: () => setTab('catalogs') },
+            ].map((s) => (
+              <button
+                key={s.label}
+                onClick={s.onClick}
+                className="bg-white border border-charcoal/10 rounded-lg p-5 text-left hover:border-brick transition-colors"
+              >
+                <div className="text-3xl font-display font-bold">{s.count}</div>
+                <div className="text-sm text-charcoal/60 mt-1">{s.label}</div>
+              </button>
+            ))}
+          </div>
+
+          <div className="bg-white border border-charcoal/10 rounded-lg p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-display font-medium">Son Teklif Talepleri</h2>
+              {quotes.length > 0 && (
+                <button onClick={() => setTab('quotes')} className="text-xs text-steel hover:underline">Tümünü Gör</button>
+              )}
+            </div>
+            {quotes.length === 0 && <p className="text-sm text-charcoal/60">Henüz teklif talebi yok.</p>}
+            <div className="space-y-2">
+              {[...quotes].reverse().slice(0, 5).map((q) => (
+                <div key={q.id} className="flex items-center justify-between gap-3 border-b border-charcoal/5 pb-2 last:border-0 last:pb-0">
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{q.name} · {q.phone}</div>
+                    <div className="text-xs text-charcoal/50">{new Date(q.createdAt).toLocaleString('tr-TR')} · {q.items.length} ürün</div>
+                  </div>
+                  {q.status === 'new' && (
+                    <span className="text-xs bg-brick/15 text-goldtext px-2 py-1 rounded-full shrink-0">Yeni</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {tab === 'products' && (
         <div className="grid lg:grid-cols-[380px_1fr] gap-8">
           <form onSubmit={handleSubmit} className="bg-white border border-charcoal/10 rounded-lg p-5 h-fit space-y-3">
@@ -359,9 +479,10 @@ export default function AdminDashboard() {
             <input required placeholder="SKU (örn: SR-105)" value={form.sku}
               onChange={(e) => setForm({ ...form, sku: e.target.value })}
               className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
-            <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
+            <select required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}
               className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm">
-              {CATEGORY_OPTIONS.map((c) => <option key={c} value={c}>{c}</option>)}
+              {categories.length === 0 && <option value="">Önce kategori ekleyin</option>}
+              {categories.map((c) => <option key={c.slug} value={c.slug}>{c.name.tr}</option>)}
             </select>
             <div className="grid grid-cols-2 gap-2">
               <input placeholder="Birim (m², adet...)" value={form.unit}
@@ -415,7 +536,13 @@ export default function AdminDashboard() {
           </form>
 
           <div className="space-y-2">
-            {products.map((p) => (
+            <input
+              placeholder="Ürün adı veya SKU ara..."
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm mb-1"
+            />
+            {filteredProducts.map((p) => (
               <div key={p.id} className="bg-white border border-charcoal/10 rounded p-3 flex items-center gap-3">
                 {p.images?.[0] ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -425,12 +552,69 @@ export default function AdminDashboard() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-medium truncate">{p.name.tr}</div>
-                  <div className="text-xs text-charcoal/50 font-mono">{p.sku} · {p.category}</div>
+                  <div className="text-xs text-charcoal/50 font-mono">
+                    {p.sku} · {categories.find((c) => c.slug === p.category)?.name.tr || p.category}
+                  </div>
                 </div>
                 <button onClick={() => loadForEdit(p)} className="text-xs text-steel hover:underline">Düzenle</button>
                 <button onClick={() => handleDelete(p.id)} className="text-xs text-goldtext hover:underline">Sil</button>
               </div>
             ))}
+            {filteredProducts.length === 0 && (
+              <p className="text-sm text-charcoal/60">{productSearch ? 'Eşleşen ürün bulunamadı.' : 'Henüz ürün eklenmedi.'}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === 'categories' && (
+        <div className="grid lg:grid-cols-[380px_1fr] gap-8">
+          <form onSubmit={handleCategorySubmit} className="bg-white border border-charcoal/10 rounded-lg p-5 h-fit space-y-3">
+            <h2 className="font-display font-medium mb-2">{editingCategorySlug ? 'Kategoriyi Düzenle' : 'Yeni Kategori Ekle'}</h2>
+            <input required placeholder="Kategori Adı (Türkçe) *" value={categoryForm.name_tr}
+              onChange={(e) => setCategoryForm({ ...categoryForm, name_tr: e.target.value })}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <input placeholder="Kategori Adı (English)" value={categoryForm.name_en}
+              onChange={(e) => setCategoryForm({ ...categoryForm, name_en: e.target.value })}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <input placeholder="Kategori Adı (Kurdî)" value={categoryForm.name_ku}
+              onChange={(e) => setCategoryForm({ ...categoryForm, name_ku: e.target.value })}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <textarea placeholder="Açıklama (Türkçe)" value={categoryForm.desc_tr}
+              onChange={(e) => setCategoryForm({ ...categoryForm, desc_tr: e.target.value })} rows={2}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <textarea placeholder="Açıklama (English)" value={categoryForm.desc_en}
+              onChange={(e) => setCategoryForm({ ...categoryForm, desc_en: e.target.value })} rows={2}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <textarea placeholder="Açıklama (Kurdî)" value={categoryForm.desc_ku}
+              onChange={(e) => setCategoryForm({ ...categoryForm, desc_ku: e.target.value })} rows={2}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <div className="flex gap-2 pt-2">
+              <button type="submit" className="flex-1 bg-brick hover:bg-brickdark text-charcoal text-sm font-medium py-2.5 rounded">
+                {editingCategorySlug ? 'Güncelle' : 'Ekle'}
+              </button>
+              {editingCategorySlug && (
+                <button type="button" onClick={resetCategoryForm} className="text-sm px-3 border border-charcoal/20 rounded">
+                  İptal
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="space-y-2">
+            {categories.map((c) => (
+              <div key={c.slug} className="bg-white border border-charcoal/10 rounded p-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium truncate">{c.name.tr}</div>
+                  <div className="text-xs text-charcoal/50 font-mono">
+                    {c.slug} · {products.filter((p) => p.category === c.slug).length} ürün
+                  </div>
+                </div>
+                <button onClick={() => loadCategoryForEdit(c)} className="text-xs text-steel hover:underline">Düzenle</button>
+                <button onClick={() => handleCategoryDelete(c.slug)} className="text-xs text-goldtext hover:underline">Sil</button>
+              </div>
+            ))}
+            {categories.length === 0 && <p className="text-sm text-charcoal/60">Henüz kategori eklenmedi.</p>}
           </div>
         </div>
       )}
@@ -480,7 +664,13 @@ export default function AdminDashboard() {
           </form>
 
           <div className="space-y-2">
-            {projects.map((p) => (
+            <input
+              placeholder="Proje adı veya konum ara..."
+              value={projectSearch}
+              onChange={(e) => setProjectSearch(e.target.value)}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm mb-1"
+            />
+            {filteredProjects.map((p) => (
               <div key={p.id} className="bg-white border border-charcoal/10 rounded p-3 flex items-center gap-3">
                 {p.images?.[0] && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -497,7 +687,9 @@ export default function AdminDashboard() {
                 <button onClick={() => handleProjectDelete(p.id)} className="text-xs text-goldtext hover:underline">Sil</button>
               </div>
             ))}
-            {projects.length === 0 && <p className="text-sm text-charcoal/60">Henüz proje eklenmedi.</p>}
+            {filteredProjects.length === 0 && (
+              <p className="text-sm text-charcoal/60">{projectSearch ? 'Eşleşen proje bulunamadı.' : 'Henüz proje eklenmedi.'}</p>
+            )}
           </div>
         </div>
       )}
@@ -560,7 +752,13 @@ export default function AdminDashboard() {
           </form>
 
           <div className="space-y-2">
-            {listings.map((l) => (
+            <input
+              placeholder="İlan başlığı veya konum ara..."
+              value={listingSearch}
+              onChange={(e) => setListingSearch(e.target.value)}
+              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm mb-1"
+            />
+            {filteredListings.map((l) => (
               <div key={l.id} className="bg-white border border-charcoal/10 rounded p-3 flex items-center gap-3">
                 {l.images?.[0] && (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -578,7 +776,9 @@ export default function AdminDashboard() {
                 <button onClick={() => handleListingDelete(l.id)} className="text-xs text-goldtext hover:underline">Sil</button>
               </div>
             ))}
-            {listings.length === 0 && <p className="text-sm text-charcoal/60">Henüz ilan eklenmedi.</p>}
+            {filteredListings.length === 0 && (
+              <p className="text-sm text-charcoal/60">{listingSearch ? 'Eşleşen ilan bulunamadı.' : 'Henüz ilan eklenmedi.'}</p>
+            )}
           </div>
         </div>
       )}

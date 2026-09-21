@@ -10,6 +10,9 @@ export default function ImageListEditor({ images, onChange, label = 'Fotoğrafla
   const [uploadingIndex, setUploadingIndex] = useState(null);
   const [error, setError] = useState('');
 
+  const multiFileInputRef = useRef(null);
+  const [multiProgress, setMultiProgress] = useState(null); // { done, total } while uploading
+
   function updateAt(i, value) {
     const next = [...list];
     next[i] = value;
@@ -60,6 +63,38 @@ export default function ImageListEditor({ images, onChange, label = 'Fotoğrafla
     }
   }
 
+  async function handleMultiFilesChosen(e) {
+    const files = Array.from(e.target.files || []);
+    e.target.value = '';
+    if (!files.length) return;
+
+    setError('');
+    setMultiProgress({ done: 0, total: files.length });
+    const uploaded = [];
+    const failures = [];
+
+    for (const file of files) {
+      try {
+        const body = new FormData();
+        body.append('file', file);
+        const res = await fetch('/api/upload', { method: 'POST', body });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Yükleme başarısız');
+        uploaded.push(data.url);
+      } catch (err) {
+        failures.push(`${file.name}: ${err.message || 'Yükleme başarısız'}`);
+      }
+      setMultiProgress((p) => ({ ...p, done: p.done + 1 }));
+    }
+
+    if (uploaded.length) {
+      const existing = list.filter((u) => u && u.trim());
+      onChange([...existing, ...uploaded]);
+    }
+    if (failures.length) setError(failures.join(' · '));
+    setMultiProgress(null);
+  }
+
   return (
     <div className="space-y-2">
       <span className="block text-sm text-charcoal/70">{label}</span>
@@ -69,6 +104,14 @@ export default function ImageListEditor({ images, onChange, label = 'Fotoğrafla
         accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
         className="hidden"
         onChange={handleFileChosen}
+      />
+      <input
+        ref={multiFileInputRef}
+        type="file"
+        multiple
+        accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+        className="hidden"
+        onChange={handleMultiFilesChosen}
       />
       {list.map((url, i) => {
         const hasValue = !!(url && url.trim());
@@ -123,13 +166,23 @@ export default function ImageListEditor({ images, onChange, label = 'Fotoğrafla
       })}
       {error && <p className="text-xs text-goldtext">{error}</p>}
       <p className="text-xs text-charcoal/40">Boş satırlar otomatik olarak yok sayılır; ★ işaretli fotoğraf ana fotoğraf olarak gösterilir.</p>
-      <button
-        type="button"
-        onClick={addRow}
-        className="text-xs px-3 py-2 rounded border border-dashed border-charcoal/30 text-charcoal/60 hover:border-brick hover:text-goldtext w-full"
-      >
-        + Fotoğraf Ekle
-      </button>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={addRow}
+          className="text-xs px-3 py-2 rounded border border-dashed border-charcoal/30 text-charcoal/60 hover:border-brick hover:text-goldtext flex-1"
+        >
+          + Fotoğraf Ekle
+        </button>
+        <button
+          type="button"
+          onClick={() => multiFileInputRef.current?.click()}
+          disabled={!!multiProgress}
+          className="text-xs px-3 py-2 rounded border border-dashed border-brick/50 text-goldtext hover:border-brick hover:bg-brick/5 flex-1 disabled:opacity-50"
+        >
+          {multiProgress ? `Yükleniyor… (${multiProgress.done}/${multiProgress.total})` : '📤 Birden Fazla Yükle'}
+        </button>
+      </div>
     </div>
   );
 }
