@@ -5,13 +5,15 @@ import path from 'path';
 import crypto from 'crypto';
 import { SESSION_COOKIE, isValidSessionToken } from '../../../lib/auth';
 
-const MAX_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+const MAX_PDF_SIZE = 30 * 1024 * 1024; // 30MB — catalogs can run to hundreds of pages
 const ALLOWED_TYPES = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
   'image/webp': '.webp',
   'image/gif': '.gif',
   'image/svg+xml': '.svg',
+  'application/pdf': '.pdf',
 };
 
 export async function POST(request) {
@@ -25,12 +27,13 @@ export async function POST(request) {
   if (!file || typeof file === 'string') {
     return NextResponse.json({ error: 'dosya bulunamadı' }, { status: 400 });
   }
-  if (file.size > MAX_SIZE) {
-    return NextResponse.json({ error: 'dosya çok büyük (max 10MB)' }, { status: 400 });
-  }
   const ext = ALLOWED_TYPES[file.type];
   if (!ext) {
     return NextResponse.json({ error: 'desteklenmeyen dosya türü' }, { status: 400 });
+  }
+  const maxSize = file.type === 'application/pdf' ? MAX_PDF_SIZE : MAX_IMAGE_SIZE;
+  if (file.size > maxSize) {
+    return NextResponse.json({ error: `dosya çok büyük (max ${maxSize / (1024 * 1024)}MB)` }, { status: 400 });
   }
 
   const uploadsDir = path.join(process.cwd(), 'public', 'uploads');

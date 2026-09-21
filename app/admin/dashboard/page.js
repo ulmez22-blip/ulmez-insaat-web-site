@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import ImageListEditor from '../../../components/admin/ImageListEditor';
+import SingleImageUpload from '../../../components/admin/SingleImageUpload';
 
 const EMPTY_FORM = {
   sku: '', category: '', unit: 'm²', spec: '', color: '#C9BBA0',
@@ -796,9 +797,16 @@ export default function AdminDashboard() {
             <input required placeholder="Katalog Başlığı (örn: 2026 Ana Katalog)" value={catalogForm.title}
               onChange={(e) => setCatalogForm({ ...catalogForm, title: e.target.value })}
               className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
-            <input required placeholder="Dosya URL'si (PDF linki)" value={catalogForm.fileUrl}
-              onChange={(e) => setCatalogForm({ ...catalogForm, fileUrl: e.target.value })}
-              className="w-full border border-charcoal/20 rounded px-3 py-2 text-sm" />
+            <SingleImageUpload
+              value={catalogForm.fileUrl}
+              onChange={(fileUrl) => setCatalogForm({ ...catalogForm, fileUrl })}
+              placeholder="Dosya URL'si (PDF linki)"
+              accept="application/pdf"
+            />
+            <p className="text-xs text-charcoal/40 -mt-1">
+              PDF'yi bilgisayarınızdan yükleyin — dosya bizim sitemizde barındırılır,
+              müşteriler başka bir siteye yönlendirilmez.
+            </p>
             <div className="flex gap-2 pt-2">
               <button type="submit" className="flex-1 bg-brick hover:bg-brickdark text-charcoal text-sm font-medium py-2.5 rounded">
                 {editingCatalogId ? 'Güncelle' : 'Ekle'}

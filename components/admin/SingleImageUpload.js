@@ -2,7 +2,10 @@
 
 import { useRef, useState } from 'react';
 
-export default function SingleImageUpload({ value, onChange, placeholder = "Fotoğraf URL'si" }) {
+export default function SingleImageUpload({
+  value, onChange, placeholder = "Fotoğraf URL'si",
+  accept = 'image/png,image/jpeg,image/webp,image/gif,image/svg+xml',
+}) {
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -34,7 +37,7 @@ export default function SingleImageUpload({ value, onChange, placeholder = "Foto
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml"
+          accept={accept}
           className="hidden"
           onChange={handleFileChosen}
         />
