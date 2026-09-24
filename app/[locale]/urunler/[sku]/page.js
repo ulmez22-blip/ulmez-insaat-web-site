@@ -1,15 +1,15 @@
 import { notFound } from 'next/navigation';
 import { getDict } from '../../../../lib/i18n';
-import { getProductBySku, getProducts } from '../../../../lib/db';
+import { getProductBySku, getProducts, decodeRouteParam } from '../../../../lib/db';
 import Gallery from '../../../../components/Gallery';
 import AddToQuoteButton from '../../../../components/AddToQuoteButton';
 import ProductCard from '../../../../components/ProductCard';
 import Reveal, { RevealGroup, RevealItem } from '../../../../components/Reveal';
 
 export default function ProductDetail({ params }) {
-  const { locale, sku } = params;
+  const { locale } = params;
   const dict = getDict(locale);
-  const product = getProductBySku(sku);
+  const product = getProductBySku(decodeRouteParam(params.sku));
   if (!product) notFound();
 
   const related = getProducts()

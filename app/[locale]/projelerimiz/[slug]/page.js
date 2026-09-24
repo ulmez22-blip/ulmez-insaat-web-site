@@ -1,14 +1,14 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getDict } from '../../../../lib/i18n';
-import { getProjectBySlug } from '../../../../lib/db';
+import { getProjectBySlug, decodeRouteParam } from '../../../../lib/db';
 import Gallery from '../../../../components/Gallery';
 import Reveal from '../../../../components/Reveal';
 
 export default function ProjectDetail({ params }) {
-  const { locale, slug } = params;
+  const { locale } = params;
   const dict = getDict(locale);
-  const project = getProjectBySlug(slug);
+  const project = getProjectBySlug(decodeRouteParam(params.slug));
   if (!project) notFound();
 
   return (
