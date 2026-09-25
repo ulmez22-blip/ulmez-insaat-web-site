@@ -74,6 +74,14 @@ export default function AdminDashboard() {
 
   const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [settingsSaved, setSettingsSaved] = useState(false);
+  const [settingsError, setSettingsError] = useState('');
+  // Shared across the Products/Categories/Projects/Listings/Catalogs forms —
+  // only one of those tabs is ever visible at once, so one error slot is enough.
+  const [formError, setFormError] = useState('');
+
+  function saveFailedMessage(status) {
+    return `Kaydedilemedi (hata kodu: ${status}). Sayfayı yenileyip tekrar deneyin.`;
+  }
 
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [passwordError, setPasswordError] = useState('');
@@ -152,6 +160,7 @@ export default function AdminDashboard() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    setFormError('');
     const payload = {
       sku: form.sku, category: form.category, unit: form.unit, spec: form.spec, color: form.color,
       featured: form.featured,
@@ -172,6 +181,8 @@ export default function AdminDashboard() {
       const updated = await fetch('/api/products').then((r) => r.json());
       setProducts(updated);
       resetForm();
+    } else {
+      setFormError(saveFailedMessage(res.status));
     }
   }
 
@@ -205,6 +216,7 @@ export default function AdminDashboard() {
 
   async function handleCategorySubmit(e) {
     e.preventDefault();
+    setFormError('');
     const payload = {
       name: { tr: categoryForm.name_tr, en: categoryForm.name_en || categoryForm.name_tr, ku: categoryForm.name_ku || categoryForm.name_tr },
       desc: { tr: categoryForm.desc_tr, en: categoryForm.desc_en || categoryForm.desc_tr, ku: categoryForm.desc_ku || categoryForm.desc_tr },
@@ -222,6 +234,8 @@ export default function AdminDashboard() {
       const updated = await fetch('/api/categories').then((r) => r.json());
       setCategories(updated);
       resetCategoryForm();
+    } else {
+      setFormError(saveFailedMessage(res.status));
     }
   }
 
@@ -253,6 +267,7 @@ export default function AdminDashboard() {
 
   async function handleProjectSubmit(e) {
     e.preventDefault();
+    setFormError('');
     const payload = {
       location: projectForm.location,
       images: projectForm.images.filter(Boolean),
@@ -273,6 +288,8 @@ export default function AdminDashboard() {
       const updated = await fetch('/api/projects').then((r) => r.json());
       setProjects(updated);
       resetProjectForm();
+    } else {
+      setFormError(saveFailedMessage(res.status));
     }
   }
 
@@ -301,6 +318,7 @@ export default function AdminDashboard() {
 
   async function handleListingSubmit(e) {
     e.preventDefault();
+    setFormError('');
     const payload = {
       type: listingForm.type, status: listingForm.status, location: listingForm.location, price: listingForm.price,
       images: listingForm.images.filter(Boolean),
@@ -320,6 +338,8 @@ export default function AdminDashboard() {
       const updated = await fetch('/api/listings').then((r) => r.json());
       setListings(updated);
       resetListingForm();
+    } else {
+      setFormError(saveFailedMessage(res.status));
     }
   }
 
@@ -332,12 +352,19 @@ export default function AdminDashboard() {
   // ---- Settings ----
   async function handleSettingsSubmit(e) {
     e.preventDefault();
-    const res = await fetch('/api/settings', {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings),
-    });
-    if (res.ok) {
-      setSettingsSaved(true);
-      setTimeout(() => setSettingsSaved(false), 2000);
+    setSettingsError('');
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(settings),
+      });
+      if (res.ok) {
+        setSettingsSaved(true);
+        setTimeout(() => setSettingsSaved(false), 2000);
+      } else {
+        setSettingsError(`Kaydedilemedi (hata kodu: ${res.status}). Sayfayı yenileyip tekrar deneyin.`);
+      }
+    } catch {
+      setSettingsError('Kaydedilemedi — internet bağlantınızı kontrol edip tekrar deneyin.');
     }
   }
 
@@ -376,6 +403,7 @@ export default function AdminDashboard() {
 
   async function handleCatalogSubmit(e) {
     e.preventDefault();
+    setFormError('');
     const payload = { ...catalogForm };
 
     const res = editingCatalogId
@@ -390,6 +418,8 @@ export default function AdminDashboard() {
       const updated = await fetch('/api/catalogs').then((r) => r.json());
       setCatalogs(updated);
       resetCatalogForm();
+    } else {
+      setFormError(saveFailedMessage(res.status));
     }
   }
 
@@ -534,6 +564,7 @@ export default function AdminDashboard() {
                 </button>
               )}
             </div>
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
           </form>
 
           <div className="space-y-2">
@@ -600,6 +631,7 @@ export default function AdminDashboard() {
                 </button>
               )}
             </div>
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
           </form>
 
           <div className="space-y-2">
@@ -662,6 +694,7 @@ export default function AdminDashboard() {
                 </button>
               )}
             </div>
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
           </form>
 
           <div className="space-y-2">
@@ -750,6 +783,7 @@ export default function AdminDashboard() {
                 </button>
               )}
             </div>
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
           </form>
 
           <div className="space-y-2">
@@ -817,6 +851,7 @@ export default function AdminDashboard() {
                 </button>
               )}
             </div>
+            {formError && <p className="text-xs text-red-600">{formError}</p>}
           </form>
 
           <div className="space-y-2">
@@ -963,6 +998,7 @@ export default function AdminDashboard() {
               Kaydet
             </button>
             {settingsSaved && <p className="text-xs text-goldtext mt-2">Kaydedildi.</p>}
+            {settingsError && <p className="text-xs text-red-600 mt-2">{settingsError}</p>}
           </div>
         </form>
       )}
