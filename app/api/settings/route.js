@@ -3,6 +3,12 @@ import { cookies } from 'next/headers';
 import { getSettings, updateSettings } from '../../../lib/db';
 import { SESSION_COOKIE, isValidSessionToken } from '../../../lib/auth';
 
+// Without this, Next.js statically optimizes this route at build time since
+// GET doesn't touch cookies/headers — which silently strips PUT support too
+// (a statically-generated route only ever serves the baked-in GET response),
+// so saving settings from the admin panel would fail with a 405.
+export const dynamic = 'force-dynamic';
+
 function localized(value) {
   return {
     tr: String(value?.tr || ''),
